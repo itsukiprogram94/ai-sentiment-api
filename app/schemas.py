@@ -1,3 +1,4 @@
+#APIの入力と出力の型定義を行うファイル
 from pydantic import BaseModel
 
 #API入力の型定義
