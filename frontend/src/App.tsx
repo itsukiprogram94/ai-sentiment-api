@@ -11,23 +11,38 @@ function App() {
   const [text, setText] = useState("This product is excellent");
   const [result, setResult] = useState<PredictResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   //Analyzeボタンが押されたときに実行される関数
   //asyncこの関数の中で非同期処理をすることを宣言
   const handlePredict = async () => {
     setLoading(true);
     setResult(null);
-    //fetch はブラウザ標準のHTTP通信機能
-    const response = await fetch("http://127.0.0.1:8000/predict", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text }),
-    });
-    
-    const data: PredictResponse = await response.json();
-    setResult(data);
-    setLoading(false);
+    setError(null);
+    try {
+      //fetch はブラウザ標準のHTTP通信機能
+      const response = await fetch("http://127.0.0.1:8000/predict", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text }),
+      });
+      //response.ok は、HTTPステータスコードが 200〜299 のとき trueを返すプロパティ
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+      const data: PredictResponse = await response.json();
+      setResult(data);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Unknown error occurred");
+      }
+    //絶対に実行されるコードをfinallyブロックに書く
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,6 +61,13 @@ function App() {
       <button onClick={handlePredict} disabled={loading}>
         {loading ? "Analyzing..." : "Analyze"}
       </button>
+
+      {error && (
+        <section>
+          <h2>Error</h2>
+          <p>{error}</p>
+        </section>
+      )}
 
       {result && (
         <section>
