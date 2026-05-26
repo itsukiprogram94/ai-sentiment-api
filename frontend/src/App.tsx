@@ -44,39 +44,68 @@ function App() {
       setLoading(false);
     }
   };
+  const getLabelClassName = (label: string) => {
+    if (label === "positive") return "label label-positive";
+    if (label === "negative") return "label label-negative";
+    return "label label-neutral";
+  };
 
   return (
-    <main>
-      <h1>AI Sentiment API</h1>
+    <main className="page">
+      <section className="card">
+        <div className="header">
+          <p className="eyebrow">FastAPI × React × TypeScript</p>
+          <h1>AI Sentiment Web App</h1>
+          <p className="description">
+          英文を入力して、その文が肯定的、否定的、中立的かどうかを分析します。
+          </p>
+        </div>
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={5}
-        cols={50}
-      />
+        <div className="form-area">
+          <label htmlFor="text-input">テキストを入力してください</label>
+          <textarea
+            id="text-input"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={6}
+            placeholder="Type a sentence..."
+          />
 
-      <br />
+          <button onClick={handlePredict} disabled={loading || text.trim() === ""}>
+            {loading ? "Analyzing..." : "Analyze"}
+          </button>
+        </div>
 
-      <button onClick={handlePredict} disabled={loading}>
-        {loading ? "Analyzing..." : "Analyze"}
-      </button>
+        {error && (
+          <section className="message error-box">
+            <h2>Error</h2>
+            <p>{error}</p>
+          </section>
+        )}
 
-      {error && (
-        <section>
-          <h2>Error</h2>
-          <p>{error}</p>
-        </section>
-      )}
+        {result && (
+          <section className="message result-box">
+            <h2>Result</h2>
 
-      {result && (
-        <section>
-          <h2>Result</h2>
-          <p>Text: {result.text}</p>
-          <p>Label: {result.label}</p>
-          <p>Score: {result.score}</p>
-        </section>
-      )}
+            <div className="result-row">
+              <span className="result-label">Label</span>
+              <span className={getLabelClassName(result.label)}>
+                {result.label}
+              </span>
+            </div>
+
+            <div className="result-row">
+              <span className="result-label">Score</span>
+              <span>{result.score}</span>
+            </div>
+
+            <div className="analyzed-text">
+              <span className="result-label">Analyzed text</span>
+              <p>{result.text}</p>
+            </div>
+          </section>
+        )}
+      </section>
     </main>
   );
 }
