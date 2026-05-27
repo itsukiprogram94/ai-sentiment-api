@@ -42,6 +42,18 @@ if frontend_dist_path.exists():
     )
 
 #GETリクエストで、どんなパスが来ても受け取る
+@app.get("/")
+def serve_index():
+    index_file = frontend_dist_path / "index.html"
+
+    if index_file.exists():
+        return FileResponse(index_file)
+
+    return {
+        "message": "Frontend build not found. Run `cd frontend && npm run build` first."
+    }
+
+#GETリクエストで、どんなパスが来ても受け取る
 @app.get("/{full_path:path}")
 def serve_react_app(full_path: str):
     index_file = frontend_dist_path / "index.html"
