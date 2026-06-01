@@ -66,6 +66,7 @@ Docker build の中で以下を行います。
 - scikit-learnによる感情分析モデルの推論
 - joblibによる学習済みモデルの保存・読み込み
 - CSVデータを用いたモデル再学習
+- train/test splitによる簡易的なモデル評価
 - React build成果物のFastAPI配信
 - multi-stage Docker build による一体型コンテナ作成
 
@@ -151,7 +152,7 @@ scikit-learnで学習した感情分析モデルです。
 
 ### `scripts/train_model.py`
 
-学習データを読み込み、scikit-learnモデルを学習して保存するスクリプトです。
+学習データを読み込み、scikit-learnモデルを学習・評価して保存するスクリプトです。
 
 主な処理：
 
@@ -159,6 +160,9 @@ scikit-learnで学習した感情分析モデルです。
 - `text` と `label` の分離
 - `TfidfVectorizer` による文章の数値化
 - `LogisticRegression` による分類モデルの学習
+- train/test splitによる簡易評価
+- `classification_report` によるクラス別評価
+- 全データでの最終モデル再学習
 - `joblib` によるモデル保存
 
 ### `data/sentiment_samples.csv`
@@ -222,6 +226,16 @@ This is terrible,negative
 It is okay,neutral
 ```
 
+現在は小規模なサンプルデータを使用しています。  
+否定表現への対応を改善するため、以下のようなデータも含めています。
+
+```text
+This is not good,negative
+This is not great,negative
+This is not bad,positive
+The product is neither good nor bad,neutral
+```
+
 ### 学習スクリプト
 
 モデル学習は以下のスクリプトで行います。
@@ -243,6 +257,49 @@ LogisticRegressionで分類モデルを学習する
 ↓
 Pipeline全体をjoblibで保存する
 ```
+
+### 特徴量
+
+文章の数値化には `TfidfVectorizer` を使用しています。
+
+現在は、単語単体だけでなく2語のまとまりも特徴量として扱うため、以下の設定を使用しています。
+
+```python
+TfidfVectorizer(ngram_range=(1, 2))
+```
+
+これにより、以下のような違いを学習しやすくしています。
+
+```text
+good      -> positive寄り
+not good  -> negative寄り
+
+bad       -> negative寄り
+not bad   -> positive寄り
+```
+
+### モデル評価
+
+`scripts/train_model.py` では、モデル保存前に簡易的な評価を行います。
+
+評価では、学習データを train / test に分割し、test データに対する予測結果から以下を表示します。
+
+```text
+Accuracy
+Classification report
+```
+
+`classification_report` では、各クラスごとに以下を確認できます。
+
+- precision
+- recall
+- f1-score
+- support
+
+現在のデータセットは小規模なサンプルデータであるため、評価値は安定しません。  
+そのため、現時点の評価は実用性能を正確に測るものではなく、モデル評価の流れを確認するためのものです。
+
+評価後、APIで使用する最終モデルは、全データで再学習して `app/models/sentiment_model.joblib` に保存します。
 
 ### モデル保存先
 
@@ -474,8 +531,9 @@ not terrible
 
 - 学習データが小規模であり、実用的な精度には達していません
 - 英文テキストのみを想定しています
-- `not good` や `not bad` のような否定表現に弱い場合があります
+- 否定表現は一部改善していますが、複雑な文脈理解はできません
 - 未知語や長文に対する予測は不安定です
+- 評価データも小規模であるため、評価指標は安定しません
 - Frontendのbuild成果物 `frontend/dist/` はGit管理していません
 - 本番環境へのデプロイは未実施です
 
@@ -483,9 +541,10 @@ not terrible
 
 - 学習データの追加
 - 否定表現を含むデータの追加
-- `TfidfVectorizer` の `ngram_range` 調整
-- train/test splitによる評価
-- accuracy / classification_reportによるモデル評価
+- より大きな公開データセットの利用
+- `TfidfVectorizer` のパラメータ調整
+- モデル比較
+- accuracy / classification_reportによるモデル評価の継続
 - 日本語テキストへの対応
 - pytestによるBackendテスト追加
 - VitestなどによるFrontendテスト追加
