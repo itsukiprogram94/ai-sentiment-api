@@ -37,54 +37,62 @@ Docker build の中で以下を行います。
 
 ### Backend
 
-- Python
-- FastAPI
-- Pydantic
-- Uvicorn
-- scikit-learn
-- pandas
-- joblib
-- Docker
-- Docker Compose
+* Python
+* FastAPI
+* Pydantic
+* Uvicorn
+* scikit-learn
+* pandas
+* joblib
+* pytest
+* httpx
+* Docker
+* Docker Compose
 
 ### Frontend
 
-- React
-- TypeScript
-- Vite
-- Fetch API
+* React
+* TypeScript
+* Vite
+* Fetch API
 
 ## 主な機能
 
-- テキスト入力フォーム
-- 感情分析APIの呼び出し
-- 判定結果の画面表示
-- ローディング状態の表示
-- API通信失敗時のエラー表示
-- 判定ラベルに応じたUI表示切り替え
-- Pydanticによるリクエスト・レスポンスの型定義
-- scikit-learnによる感情分析モデルの推論
-- joblibによる学習済みモデルの保存・読み込み
-- CSVデータを用いたモデル再学習
-- train/test splitによる簡易的なモデル評価
-- React build成果物のFastAPI配信
-- multi-stage Docker build による一体型コンテナ作成
+* テキスト入力フォーム
+* 感情分析APIの呼び出し
+* 判定結果の画面表示
+* ローディング状態の表示
+* API通信失敗時のエラー表示
+* 判定ラベルに応じたUI表示切り替え
+* Pydanticによるリクエスト・レスポンスの型定義
+* scikit-learnによる感情分析モデルの推論
+* joblibによる学習済みモデルの保存・読み込み
+* CSVデータを用いたモデル再学習
+* train/test splitによる簡易的なモデル評価
+* pytestによるBackendテスト
+* React build成果物のFastAPI配信
+* multi-stage Docker build による一体型コンテナ作成
 
 ## ディレクトリ構成
 
 ```text
 ai-sentiment-api/
 ├── app/
+│   ├── __init__.py
 │   ├── main.py
 │   ├── schemas.py
 │   ├── models/
 │   │   └── sentiment_model.joblib
 │   └── services/
+│       ├── __init__.py
 │       └── predictor.py
 ├── data/
 │   └── sentiment_samples.csv
 ├── scripts/
 │   └── train_model.py
+├── tests/
+│   ├── test_api.py
+│   └── test_predictor.py
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx
@@ -94,6 +102,7 @@ ai-sentiment-api/
 │   ├── tsconfig.json
 │   └── vite.config.ts
 ├── requirements.txt
+├── pytest.ini
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .gitignore
@@ -108,16 +117,16 @@ FastAPIアプリケーションのエントリーポイントです。
 
 主な役割：
 
-- FastAPIアプリの作成
-- APIエンドポイントの定義
-- React build成果物の配信
+* FastAPIアプリの作成
+* APIエンドポイントの定義
+* React build成果物の配信
 
 定義している主なエンドポイント：
 
-- `GET /api/health`
-- `POST /api/predict`
-- `GET /`
-- `GET /{full_path:path}`
+* `GET /api/health`
+* `POST /api/predict`
+* `GET /`
+* `GET /{full_path:path}`
 
 `GET /` および `GET /{full_path:path}` では、React build後の `frontend/dist/index.html` を返します。
 
@@ -125,8 +134,8 @@ FastAPIアプリケーションのエントリーポイントです。
 
 APIの入力・出力データ構造を定義しています。
 
-- `PredictRequest`
-- `PredictResponse`
+* `PredictRequest`
+* `PredictResponse`
 
 ### `app/services/predictor.py`
 
@@ -134,9 +143,9 @@ APIの入力・出力データ構造を定義しています。
 
 主な役割：
 
-- `app/models/sentiment_model.joblib` の読み込み
-- 入力テキストの推論
-- 予測ラベルとスコアの返却
+* `app/models/sentiment_model.joblib` の読み込み
+* 入力テキストの推論
+* 予測ラベルとスコアの返却
 
 FastAPI起動時に学習済みモデルを読み込み、リクエストごとにそのモデルを使って推論します。
 
@@ -146,9 +155,9 @@ scikit-learnで学習した感情分析モデルです。
 
 このファイルには、以下が含まれます。
 
-- `TfidfVectorizer`
-- `LogisticRegression`
-- scikit-learn `Pipeline`
+* `TfidfVectorizer`
+* `LogisticRegression`
+* scikit-learn `Pipeline`
 
 ### `scripts/train_model.py`
 
@@ -156,14 +165,14 @@ scikit-learnで学習した感情分析モデルです。
 
 主な処理：
 
-- `data/sentiment_samples.csv` の読み込み
-- `text` と `label` の分離
-- `TfidfVectorizer` による文章の数値化
-- `LogisticRegression` による分類モデルの学習
-- train/test splitによる簡易評価
-- `classification_report` によるクラス別評価
-- 全データでの最終モデル再学習
-- `joblib` によるモデル保存
+* `data/sentiment_samples.csv` の読み込み
+* `text` と `label` の分離
+* `TfidfVectorizer` による文章の数値化
+* `LogisticRegression` による分類モデルの学習
+* train/test splitによる簡易評価
+* `classification_report` によるクラス別評価
+* 全データでの最終モデル再学習
+* `joblib` によるモデル保存
 
 ### `data/sentiment_samples.csv`
 
@@ -178,19 +187,52 @@ This is terrible,negative
 It is okay,neutral
 ```
 
+### `tests/test_predictor.py`
+
+推論ロジックを直接テストするファイルです。
+
+主な確認内容：
+
+* positive文が `positive` と判定されるか
+* `not good` が `negative` と判定されるか
+* `not bad` が `positive` と判定されるか
+* `predict_sentiment()` の返り値に `text` / `label` / `score` が含まれているか
+
+### `tests/test_api.py`
+
+FastAPIのAPIエンドポイントをテストするファイルです。
+
+主な確認内容：
+
+* `GET /api/health` が `200` を返すか
+* `POST /api/predict` が正常なJSONを返すか
+* 不正なリクエストボディに対して `422` が返るか
+
+### `pytest.ini`
+
+pytestの設定ファイルです。
+
+```ini
+[pytest]
+pythonpath = .
+testpaths = tests
+```
+
+`pythonpath = .` により、プロジェクト直下の `app/` をテスト時にimportできるようにしています。
+
 ### `frontend/src/App.tsx`
 
 React + TypeScriptで作成した画面です。
 
 主な役割：
 
-- 入力テキストの状態管理
-- Analyzeボタンの処理
-- `fetch` による FastAPI へのPOSTリクエスト
-- APIレスポンスの画面表示
-- ローディング状態の管理
-- エラー状態の管理
-- 判定ラベルに応じた表示切り替え
+* 入力テキストの状態管理
+* Analyzeボタンの処理
+* `fetch` による FastAPI へのPOSTリクエスト
+* APIレスポンスの画面表示
+* ローディング状態の管理
+* エラー状態の管理
+* 判定ラベルに応じた表示切り替え
 
 ### `frontend/src/App.css`
 
@@ -198,12 +240,12 @@ React + TypeScriptで作成した画面です。
 
 主な内容：
 
-- カード型レイアウト
-- 入力フォーム
-- ボタン
-- 結果表示
-- エラー表示
-- positive / negative / neutral に応じたラベル表示
+* カード型レイアウト
+* 入力フォーム
+* ボタン
+* 結果表示
+* エラー表示
+* positive / negative / neutral に応じたラベル表示
 
 ## Machine Learning構成
 
@@ -226,7 +268,7 @@ This is terrible,negative
 It is okay,neutral
 ```
 
-現在は小規模なサンプルデータを使用しています。  
+現在は小規模なサンプルデータを使用しています。
 否定表現への対応を改善するため、以下のようなデータも含めています。
 
 ```text
@@ -291,12 +333,12 @@ Classification report
 
 `classification_report` では、各クラスごとに以下を確認できます。
 
-- precision
-- recall
-- f1-score
-- support
+* precision
+* recall
+* f1-score
+* support
 
-現在のデータセットは小規模なサンプルデータであるため、評価値は安定しません。  
+現在のデータセットは小規模なサンプルデータであるため、評価値は安定しません。
 そのため、現時点の評価は実用性能を正確に測るものではなく、モデル評価の流れを確認するためのものです。
 
 評価後、APIで使用する最終モデルは、全データで再学習して `app/models/sentiment_model.joblib` に保存します。
@@ -356,6 +398,53 @@ http://127.0.0.1:8000/docs
 ```text
 http://127.0.0.1:8000/api/health
 ```
+
+## テスト
+
+このプロジェクトでは、pytestを用いてBackendのテストを行っています。
+
+### テスト対象
+
+```text
+tests/
+├── test_predictor.py
+└── test_api.py
+```
+
+### テスト実行方法
+
+ローカル環境で以下を実行します。
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+pytest
+```
+
+成功すると、以下のように表示されます。
+
+```text
+8 passed
+```
+
+### テスト内容
+
+`tests/test_predictor.py` では、推論関数 `predict_sentiment()` を直接テストします。
+
+主な確認項目：
+
+* positive文の判定
+* `not good` の判定
+* `not bad` の判定
+* 返り値の構造
+
+`tests/test_api.py` では、FastAPIのエンドポイントをテストします。
+
+主な確認項目：
+
+* `GET /api/health`
+* `POST /api/predict`
+* 不正なリクエストに対する `422` レスポンス
 
 ## API仕様
 
@@ -529,24 +618,29 @@ not terrible
 
 ## 現在の制限
 
-- 学習データが小規模であり、実用的な精度には達していません
-- 英文テキストのみを想定しています
-- 否定表現は一部改善していますが、複雑な文脈理解はできません
-- 未知語や長文に対する予測は不安定です
-- 評価データも小規模であるため、評価指標は安定しません
-- Frontendのbuild成果物 `frontend/dist/` はGit管理していません
-- 本番環境へのデプロイは未実施です
+* 学習データが小規模であり、実用的な精度には達していません
+* 英文テキストのみを想定しています
+* 否定表現は一部改善していますが、複雑な文脈理解はできません
+* 未知語や長文に対する予測は不安定です
+* 評価データも小規模であるため、評価指標は安定しません
+* Frontendのbuild成果物 `frontend/dist/` はGit管理していません
+* 本番環境へのデプロイは未実施です
 
 ## 今後の改善案
 
-- 学習データの追加
-- 否定表現を含むデータの追加
-- より大きな公開データセットの利用
-- `TfidfVectorizer` のパラメータ調整
-- モデル比較
-- accuracy / classification_reportによるモデル評価の継続
-- 日本語テキストへの対応
-- pytestによるBackendテスト追加
-- VitestなどによるFrontendテスト追加
-- GitHub ActionsによるCI追加
-- Cloud Run / Render / Railway などへのデプロイ
+* GitHub Actionsによるpytest自動実行
+* 学習データの追加
+* より大きな公開データセットの利用
+* モデル比較
+* 日本語テキストへの対応
+* pytestによるBackendテスト拡充
+* VitestなどによるFrontendテスト追加
+* Cloud Run / Render / Railway などへのデプロイ
+
+```
+```
+
+
+
+
+
