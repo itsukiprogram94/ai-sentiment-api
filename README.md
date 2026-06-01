@@ -27,7 +27,11 @@ Docker build の中で以下を行います。
 4. 1つのコンテナで画面とAPIを配信
 ```
 
-現時点では、機械学習モデルではなく、単語リストを用いたルールベースの簡易判定を行っています。
+現在は、scikit-learnで学習した感情分析モデルを用いて、入力文を `positive` / `negative` / `neutral` に分類しています。
+
+学習データは `data/sentiment_samples.csv` に配置し、`scripts/train_model.py` を実行することでモデルを再学習できます。
+
+現時点では小規模なサンプルデータを使用しているため、精度には制限があります。特に `not good` や `not bad` のような否定表現は、学習データが少ないと誤分類される可能性があります。
 
 ## 使用技術
 
@@ -37,6 +41,9 @@ Docker build の中で以下を行います。
 - FastAPI
 - Pydantic
 - Uvicorn
+- scikit-learn
+- pandas
+- joblib
 - Docker
 - Docker Compose
 
@@ -56,6 +63,9 @@ Docker build の中で以下を行います。
 - API通信失敗時のエラー表示
 - 判定ラベルに応じたUI表示切り替え
 - Pydanticによるリクエスト・レスポンスの型定義
+- scikit-learnによる感情分析モデルの推論
+- joblibによる学習済みモデルの保存・読み込み
+- CSVデータを用いたモデル再学習
 - React build成果物のFastAPI配信
 - multi-stage Docker build による一体型コンテナ作成
 
@@ -66,8 +76,14 @@ ai-sentiment-api/
 ├── app/
 │   ├── main.py
 │   ├── schemas.py
+│   ├── models/
+│   │   └── sentiment_model.joblib
 │   └── services/
 │       └── predictor.py
+├── data/
+│   └── sentiment_samples.csv
+├── scripts/
+│   └── train_model.py
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx
@@ -113,12 +129,50 @@ APIの入力・出力データ構造を定義しています。
 
 ### `app/services/predictor.py`
 
-感情分析ロジックを定義しています。
+感情分析モデルを読み込み、推論を行う処理を定義しています。
 
-現時点では、以下のような単語リストを使って判定しています。
+主な役割：
 
-- positive: `love`, `good`, `great`, `excellent`, `happy`
-- negative: `bad`, `hate`, `terrible`, `sad`, `poor`
+- `app/models/sentiment_model.joblib` の読み込み
+- 入力テキストの推論
+- 予測ラベルとスコアの返却
+
+FastAPI起動時に学習済みモデルを読み込み、リクエストごとにそのモデルを使って推論します。
+
+### `app/models/sentiment_model.joblib`
+
+scikit-learnで学習した感情分析モデルです。
+
+このファイルには、以下が含まれます。
+
+- `TfidfVectorizer`
+- `LogisticRegression`
+- scikit-learn `Pipeline`
+
+### `scripts/train_model.py`
+
+学習データを読み込み、scikit-learnモデルを学習して保存するスクリプトです。
+
+主な処理：
+
+- `data/sentiment_samples.csv` の読み込み
+- `text` と `label` の分離
+- `TfidfVectorizer` による文章の数値化
+- `LogisticRegression` による分類モデルの学習
+- `joblib` によるモデル保存
+
+### `data/sentiment_samples.csv`
+
+モデル学習用のサンプルデータです。
+
+CSVは以下の形式です。
+
+```csv
+text,label
+I love this product,positive
+This is terrible,negative
+It is okay,neutral
+```
 
 ### `frontend/src/App.tsx`
 
@@ -146,6 +200,75 @@ React + TypeScriptで作成した画面です。
 - 結果表示
 - エラー表示
 - positive / negative / neutral に応じたラベル表示
+
+## Machine Learning構成
+
+このプロジェクトでは、scikit-learnを用いた感情分析モデルを使用しています。
+
+### 学習データ
+
+学習データは以下に配置しています。
+
+```text
+data/sentiment_samples.csv
+```
+
+CSVは以下の形式です。
+
+```csv
+text,label
+I love this product,positive
+This is terrible,negative
+It is okay,neutral
+```
+
+### 学習スクリプト
+
+モデル学習は以下のスクリプトで行います。
+
+```text
+scripts/train_model.py
+```
+
+学習処理の流れは以下です。
+
+```text
+CSVデータを読み込む
+↓
+text列とlabel列に分ける
+↓
+TfidfVectorizerで文章を数値化する
+↓
+LogisticRegressionで分類モデルを学習する
+↓
+Pipeline全体をjoblibで保存する
+```
+
+### モデル保存先
+
+学習済みモデルは以下に保存されます。
+
+```text
+app/models/sentiment_model.joblib
+```
+
+FastAPI起動時にこのモデルを読み込み、`POST /api/predict` で推論に使用します。
+
+### 再学習方法
+
+ローカル環境で以下を実行します。
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+python scripts/train_model.py
+```
+
+モデルが更新されたら、Dockerコンテナを再buildします。
+
+```bash
+docker compose up --build
+```
 
 ## 起動方法
 
@@ -258,7 +381,8 @@ Frontend build stageで生成した `frontend/dist` をFastAPIコンテナへコ
 ├── app/
 │   ├── main.py
 │   ├── schemas.py
-│   └── services/
+│   ├── services/
+│   └── models/
 └── frontend/
     └── dist/
         ├── index.html
@@ -327,16 +451,41 @@ frontend/dist/
 
 このプロジェクトのDockerfileでは、Docker build中に `npm run build` を実行し、生成された `frontend/dist` をFastAPIコンテナへコピーします。
 
+### scikit-learnモデルの制限
+
+現在のモデルは、小規模なサンプルデータを用いた学習モデルです。
+
+そのため、実用的な精度には達していません。
+
+特に、以下のような否定表現では誤分類する可能性があります。
+
+```text
+not good
+not great
+not bad
+not terrible
+```
+
+これは、学習データが少ない場合や、単語単体の特徴量に強く反応する場合に起きます。
+
+今後は、否定表現を含むデータを追加し、`TfidfVectorizer` の `ngram_range` を調整することで改善を目指します。
+
 ## 現在の制限
 
-- ルールベースの簡易判定であり、実際の機械学習モデルは使用していません
+- 学習データが小規模であり、実用的な精度には達していません
 - 英文テキストのみを想定しています
+- `not good` や `not bad` のような否定表現に弱い場合があります
+- 未知語や長文に対する予測は不安定です
 - Frontendのbuild成果物 `frontend/dist/` はGit管理していません
 - 本番環境へのデプロイは未実施です
 
 ## 今後の改善案
 
-- scikit-learnによる機械学習モデルへの置き換え
+- 学習データの追加
+- 否定表現を含むデータの追加
+- `TfidfVectorizer` の `ngram_range` 調整
+- train/test splitによる評価
+- accuracy / classification_reportによるモデル評価
 - 日本語テキストへの対応
 - pytestによるBackendテスト追加
 - VitestなどによるFrontendテスト追加
