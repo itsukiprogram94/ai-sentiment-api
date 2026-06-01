@@ -21,7 +21,7 @@ def train_model() -> None:
     #Pipelineは機械学習の前処理とモデルを一連の流れで実行するためのクラス
     model = Pipeline(
         steps=[
-            ("tfidf", TfidfVectorizer()),#テキストデータを数値化するための前処理
+            ("tfidf", TfidfVectorizer(ngram_range=(1, 2))),#テキストデータを数値化するための前処理
             ("classifier", LogisticRegression(max_iter=1000)),#ロジスティック回帰モデルを使用して、テキストデータの感情を分類するための機械学習アルゴリズム
         ]
     )
