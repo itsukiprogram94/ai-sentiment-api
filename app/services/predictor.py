@@ -1,22 +1,29 @@
+from pathlib import Path
+import joblib
+
+MODEL_PATH = Path("app/models/sentiment_model.joblib")
+
+model = joblib.load(MODEL_PATH)
+
+
+
+
 #戻り値をdict(辞書型)で返すように関数を定義する
 def predict_sentiment(text: str) -> dict:
-    positive_words = ["love", "good", "great", "excellent", "happy"]
-    negative_words = ["bad", "hate", "terrible", "sad", "poor"]
+    predicted_label = model.predict([text])[0]
 
-    lower_text = text.lower()
-
-    if any(word in lower_text for word in positive_words):
-        label = "positive"
-        score = 0.9
-    elif any(word in lower_text for word in negative_words):
-        label = "negative"
-        score = 0.9
+    if hasattr(model, "predict_proba"):
+        probabilities = model.predict_proba([text])[0]
+        class_labels = model.classes_
+        
+        #ラベルと確率を対応させる
+        label_to_probability = dict(zip(class_labels, probabilities))
+        score = float(label_to_probability[predicted_label])
     else:
-        label = "neutral"
-        score = 0.5
+        score = 1.0
 
     return {
         "text": text,
-        "label": label,
-        "score": score,
+        "label": predicted_label,
+        "score": round(score, 3),
     }
