@@ -4,6 +4,15 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "app/**"
+      - "frontend/**"
+      - "data/**"
+      - "scripts/**"
+      - "Dockerfile"
+      - "requirements.txt"
+      - "pytest.ini"
+      - ".github/workflows/deploy-cloud-run.yml"
   workflow_dispatch:
 
 permissions:
