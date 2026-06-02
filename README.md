@@ -822,7 +822,6 @@ not terrible
 * Backendテストの拡充
 * VitestなどによるFrontendテスト追加
 * UI/UX改善
-* READMEへのスクリーンショット追加
 
 ```
 ```
