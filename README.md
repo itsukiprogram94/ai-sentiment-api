@@ -823,5 +823,3 @@ not terrible
 * VitestなどによるFrontendテスト追加
 * UI/UX改善
 
-```
-```
