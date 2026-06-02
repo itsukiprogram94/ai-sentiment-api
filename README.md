@@ -422,19 +422,74 @@ pytest
 
 ## Cloud Runへのデプロイ
 
-このアプリはCloud Runにデプロイしています。
+このアプリは、Cloud Runにデプロイできます。
 
-デプロイ時は、Cloud Run向けに `PORT` 環境変数を使ってUvicornを起動します。
+Cloud Runでは、コンテナ化されたアプリケーションをGoogle Cloud上で実行できます。  
+このプロジェクトでは、React frontendをbuildし、その成果物をFastAPI backendから配信する一体型Docker構成をCloud Runにデプロイしています。
 
-Dockerfileでは以下のように指定しています。
+### 前提条件
+
+以下が完了している必要があります。
+
+- Google Cloud CLIがインストールされている
+- `gcloud init` が完了している
+- Google Cloudプロジェクトが作成されている
+- Billingが有効化されている
+- 必要なAPIが有効化されている
+
+### 使用するGoogle Cloudプロジェクトを確認する
+
+```bash
+gcloud config get-value project
+```
+
+このプロジェクトでは、以下のようなプロジェクトIDを使用します。
+
+```text
+sound-arcade-421503
+```
+
+### 必要なAPIを有効化する
+
+```bash
+gcloud services enable run.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
+```
+
+### Cloud Run向けのポート設定
+
+Cloud Runでは、コンテナが環境変数 `PORT` で指定されたポートで待ち受ける必要があります。
+
+そのため、Dockerfileでは以下のようにUvicornを起動しています。
 
 ```dockerfile
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
 ```
 
-これにより、Cloud Run上ではCloud Runが指定する `PORT` を使用し、ローカルではデフォルトで `8080` を使用します。
+Cloud Run上では `PORT` 環境変数が使われ、ローカルではデフォルトで `8080` が使われます。
 
-デプロイコマンド例：
+### ローカルでCloud Run想定の動作確認をする
+
+```bash
+docker compose up --build
+```
+
+起動後、以下にアクセスします。
+
+```text
+http://127.0.0.1:8080
+```
+
+ヘルスチェックAPIは以下です。
+
+```text
+http://127.0.0.1:8080/api/health
+```
+
+### 手動デプロイ
+
+プロジェクト直下で以下を実行します。
 
 ```bash
 gcloud run deploy ai-sentiment-web-app \
@@ -443,6 +498,79 @@ gcloud run deploy ai-sentiment-web-app \
   --allow-unauthenticated \
   --min-instances 0
 ```
+
+このコマンドでは、ローカルのソースコードをGoogle Cloudに送信し、Cloud Buildでコンテナイメージをbuildして、Cloud Runにデプロイします。
+
+Cloud Runのソースデプロイでは、`gcloud run deploy --source` により、ソースコードからCloud Runサービスを作成・更新できます。
+
+### オプションの意味
+
+```text
+ai-sentiment-web-app
+```
+
+Cloud Run上のサービス名です。
+
+```text
+--source .
+```
+
+現在のディレクトリをソースとしてデプロイします。
+
+```text
+--region asia-northeast1
+```
+
+東京リージョンにデプロイします。
+
+```text
+--allow-unauthenticated
+```
+
+ログインなしで誰でもアクセスできるURLとして公開します。
+
+```text
+--min-instances 0
+```
+
+アクセスがないときはインスタンス数を0にして、コストを抑えます。
+
+### デプロイ後の確認
+
+デプロイが成功すると、以下のようなURLが表示されます。
+
+```text
+https://ai-sentiment-web-app-xxxxx-an.a.run.app
+```
+
+以下を確認します。
+
+```text
+https://<cloud-run-service-url>/
+https://<cloud-run-service-url>/api/health
+```
+
+### ログ確認
+
+Cloud Runのログは以下で確認できます。
+
+```bash
+gcloud run services logs read ai-sentiment-web-app \
+  --region asia-northeast1
+```
+
+### 注意点
+
+Cloud Runには無料枠がありますが、完全無料が保証されるわけではありません。  
+Cloud Build、Artifact Registry、ログ保存、ネットワーク転送などで料金が発生する可能性があります。
+
+学習用では、以下の設定を推奨します。
+
+- `--min-instances 0` を指定する
+- Google Cloud Billingで予算アラートを設定する
+- 使わないサービスは停止・削除する
+
+
 
 ## FrontendとAPIの通信
 
