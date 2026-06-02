@@ -12,6 +12,9 @@ Cloud Runで公開しています。
 https://ai-sentiment-web-app-909882126486.asia-northeast1.run.app/
 ```
 
+## Screenshot
+
+![AI Sentiment Web App screenshot](docs/images/app-screenshot.png)
 
 
 ## 概要
