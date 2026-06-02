@@ -16,7 +16,6 @@ https://ai-sentiment-web-app-909882126486.asia-northeast1.run.app/
 
 ![AI Sentiment Web App screenshot](docs/images/app-screenshot.png)
 
-
 ## 概要
 
 このプロジェクトは、React frontend を build し、その build 成果物を FastAPI backend から配信する一体型構成です。
@@ -44,7 +43,7 @@ Docker build の中で以下を行います。
 
 現在は、scikit-learnで学習した感情分析モデルを用いて、入力文を `positive` / `negative` / `neutral` に分類しています。
 
-学習データは `data/sentiment_samples.csv` に配置し、`scripts/train_model.py` を実行することでモデルを再学習できます。
+学習データは `data/sentiment_samples.csv` に配置し、`scripts/train_model.py` を実行することでモデルを再学習することができます。
 
 ## 使用技術
 
