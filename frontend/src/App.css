@@ -89,25 +89,6 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
-button {
-  align-self: flex-start;
-  border: none;
-  border-radius: 999px;
-  padding: 12px 22px;
-  font-weight: 700;
-  color: #ffffff;
-  background: #2563eb;
-  cursor: pointer;
-}
-
-button:hover:not(:disabled) {
-  background: #1d4ed8;
-}
-
-button:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-}
 
 .message {
   margin-top: 24px;
@@ -196,4 +177,63 @@ button:disabled {
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+.sample-area {
+  margin-bottom: 24px;
+}
+
+.sample-title {
+  margin: 0 0 10px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.sample-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sample-button {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.sample-button:hover:not(:disabled) {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.sample-button:disabled {
+  color: #9ca3af;
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.analyze-button {
+  align-self: flex-start;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-weight: 700;
+  color: #ffffff;
+  background: #2563eb;
+  cursor: pointer;
+}
+
+.analyze-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.analyze-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
 }

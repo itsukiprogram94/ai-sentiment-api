@@ -7,6 +7,31 @@ type PredictResponse = {
   score: number;
 };
 
+
+const sampleTexts = [
+  {
+    label: "Positive",
+    text: "This product is excellent",
+  },
+  {
+    label: "Negative",
+    text: "This is terrible",
+  },
+  {
+    label: "Neutral",
+    text: "The product arrived today",
+  },
+  {
+    label: "Not good",
+    text: "This is not good",
+  },
+  {
+    label: "Not bad",
+    text: "This is not bad",
+  },
+];
+
+
 function App() {
   const [text, setText] = useState("This product is excellent");
   const [result, setResult] = useState<PredictResponse | null>(null);
@@ -49,6 +74,11 @@ function App() {
     if (label === "negative") return "label label-negative";
     return "label label-neutral";
   };
+  const handleSampleClick = (sampleText: string) => {
+    setText(sampleText);
+    setResult(null);
+    setError(null);
+  };
 
   return (
     <main className="page">
@@ -57,12 +87,30 @@ function App() {
           <p className="eyebrow">FastAPI × React × TypeScript</p>
           <h1>AI Sentiment Web App</h1>
           <p className="description">
-          英文を入力して、その文が肯定的、否定的、中立的かどうかを分析します。
+            Enter an English sentence and analyze whether it is positive,
+            negative, or neutral.
           </p>
         </div>
 
+        <div className="sample-area">
+          <p className="sample-title">Try sample inputs</p>
+          <div className="sample-buttons">
+            {sampleTexts.map((sample) => (
+              <button
+                key={sample.label}
+                type="button"
+                className="sample-button"
+                onClick={() => handleSampleClick(sample.text)}
+                disabled={loading}
+              >
+                {sample.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="form-area">
-          <label htmlFor="text-input">テキストを入力してください</label>
+          <label htmlFor="text-input">Input text</label>
           <textarea
             id="text-input"
             value={text}
@@ -71,7 +119,11 @@ function App() {
             placeholder="Type a sentence..."
           />
 
-          <button onClick={handlePredict} disabled={loading || text.trim() === ""}>
+          <button
+            className="analyze-button"
+            onClick={handlePredict}
+            disabled={loading || text.trim() === ""}
+          >
             {loading ? "Analyzing..." : "Analyze"}
           </button>
         </div>
