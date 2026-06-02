@@ -16,7 +16,7 @@ https://ai-sentiment-web-app-909882126486.asia-northeast1.run.app/
 
 ![AI Sentiment Web App screenshot](docs/images/app-screenshot.png)
 
-## 概要
+## Overview
 
 このプロジェクトは、React frontend を build し、その build 成果物を FastAPI backend から配信する一体型構成です。
 
@@ -43,9 +43,9 @@ Docker build の中で以下を行います。
 
 現在は、scikit-learnで学習した感情分析モデルを用いて、入力文を `positive` / `negative` / `neutral` に分類しています。
 
-学習データは `data/sentiment_samples.csv` に配置し、`scripts/train_model.py` を実行することでモデルを再学習することができます。
+学習データは `data/sentiment_samples.csv` に配置し、`scripts/train_model.py` を実行することでモデルを再学習できます。
 
-## 使用技術
+## Tech Stack
 
 ### Backend
 
@@ -57,13 +57,14 @@ Docker build の中で以下を行います。
 * pandas
 * joblib
 * pytest
-* httpx
 
 ### Frontend
 
 * React
 * TypeScript
 * Vite
+* Vitest
+* React Testing Library
 * Fetch API
 
 ### Infrastructure / DevOps
@@ -72,10 +73,12 @@ Docker build の中で以下を行います。
 * Docker Compose
 * Cloud Run
 * GitHub Actions
+* Workload Identity Federation
 
-## 主な機能
+## Features
 
 * テキスト入力フォーム
+* サンプル入力ボタン
 * 感情分析APIの呼び出し
 * 判定結果の画面表示
 * ローディング状態の表示
@@ -87,12 +90,14 @@ Docker build の中で以下を行います。
 * CSVデータを用いたモデル再学習
 * train/test splitによる簡易的なモデル評価
 * pytestによるBackendテスト
+* Vitest / React Testing LibraryによるFrontendテスト
 * GitHub Actionsによる自動テスト
+* GitHub ActionsによるCloud Run自動デプロイ
 * React build成果物のFastAPI配信
 * multi-stage Docker build による一体型コンテナ作成
 * Cloud Runへのデプロイ
 
-## ディレクトリ構成
+## Directory Structure
 
 ```text
 ai-sentiment-api/
@@ -115,14 +120,21 @@ ai-sentiment-api/
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx
-│   │   └── App.css
+│   │   ├── App.css
+│   │   ├── App.test.tsx
+│   │   └── test/
+│   │       └── setup.ts
 │   ├── package.json
 │   ├── package-lock.json
 │   ├── tsconfig.json
 │   └── vite.config.ts
+├── docs/
+│   └── images/
+│       └── app-screenshot.png
 ├── .github/
 │   └── workflows/
-│       └── backend-test.yml
+│       ├── backend-test.yml
+│       └── deploy-cloud-run.yml
 ├── requirements.txt
 ├── pytest.ini
 ├── Dockerfile
@@ -131,7 +143,7 @@ ai-sentiment-api/
 └── README.md
 ```
 
-## アプリケーション構成
+## Application Structure
 
 ### `app/main.py`
 
@@ -196,6 +208,33 @@ scikit-learnで学習した感情分析モデルです。
 * 全データでの最終モデル再学習
 * `joblib` によるモデル保存
 
+### `frontend/src/App.tsx`
+
+React + TypeScriptで作成した画面です。
+
+主な役割：
+
+* 入力テキストの状態管理
+* サンプル入力ボタンの表示
+* サンプルボタン押下時の入力欄更新
+* Analyzeボタンの処理
+* `fetch` による FastAPI へのPOSTリクエスト
+* APIレスポンスの画面表示
+* ローディング状態の管理
+* エラー状態の管理
+* 判定ラベルに応じた表示切り替え
+
+### `frontend/src/App.test.tsx`
+
+Frontendの基本的な表示と操作をテストするファイルです。
+
+主な確認内容：
+
+* タイトルが表示されるか
+* 入力欄とAnalyzeボタンが表示されるか
+* サンプル入力ボタンが表示されるか
+* サンプルボタンをクリックすると入力欄の値が変わるか
+
 ### `tests/test_predictor.py`
 
 推論ロジックを直接テストするファイルです。
@@ -217,24 +256,11 @@ FastAPIのAPIエンドポイントをテストするファイルです。
 * `POST /api/predict` が正常なJSONを返すか
 * 不正なリクエストボディに対して `422` が返るか
 
-### `.github/workflows/backend-test.yml`
-
-GitHub ActionsでBackendテストを自動実行する設定です。
-
-主な処理：
-
-* リポジトリのcheckout
-* Pythonのセットアップ
-* `requirements.txt` のインストール
-* `pytest` の実行
-
-Pull Requestやpush時に、主要なBackendテストが自動で実行されます。
-
-## Machine Learning構成
+## Machine Learning
 
 このプロジェクトでは、scikit-learnを用いた感情分析モデルを使用しています。
 
-### 学習データ
+### Training Data
 
 学習データは以下に配置しています。
 
@@ -260,7 +286,7 @@ This is not bad,positive
 The product is neither good nor bad,neutral
 ```
 
-### 特徴量
+### Feature Extraction
 
 文章の数値化には `TfidfVectorizer` を使用しています。
 
@@ -280,7 +306,7 @@ bad       -> negative寄り
 not bad   -> positive寄り
 ```
 
-### モデル評価
+### Model Evaluation
 
 `scripts/train_model.py` では、モデル保存前に簡易的な評価を行います。
 
@@ -303,7 +329,7 @@ Classification report
 
 評価後、APIで使用する最終モデルは、全データで再学習して `app/models/sentiment_model.joblib` に保存します。
 
-### 再学習方法
+### Retraining
 
 ローカル環境で以下を実行します。
 
@@ -319,7 +345,7 @@ python scripts/train_model.py
 docker compose up --build
 ```
 
-## ローカルでの起動方法
+## Local Development
 
 ### Dockerで起動する
 
@@ -347,13 +373,44 @@ http://127.0.0.1:8080/docs
 http://127.0.0.1:8080/api/health
 ```
 
-## テスト
+### FrontendとBackendを分けて起動する場合
 
-このプロジェクトでは、pytestを用いてBackendのテストを行っています。
+開発中にReactのHot Reloadを使いたい場合は、FrontendとBackendを別々に起動できます。
 
-### テスト実行方法
+Backend:
 
-ローカル環境で以下を実行します。
+```bash
+uvicorn app.main:app --reload
+```
+
+Backendは以下で起動します。
+
+```text
+http://127.0.0.1:8000
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontendは以下で起動します。
+
+```text
+http://localhost:5173
+```
+
+この開発時構成では、FrontendとBackendが別オリジンになります。
+そのため、Viteのproxy設定で `/api` へのリクエストを `http://127.0.0.1:8000` に転送しています。
+
+## Testing
+
+### Backend Tests
+
+Backendのテストはpytestで実行します。
 
 ```bash
 source .venv/bin/activate
@@ -361,34 +418,38 @@ pip install -r requirements.txt
 pytest
 ```
 
-成功すると、以下のように表示されます。
+### Frontend Tests
 
-```text
-8 passed
+FrontendのテストはVitestで実行します。
+
+```bash
+cd frontend
+npm ci
+npm run test:run
 ```
 
-### テスト内容
+### Test Coverage in This Project
 
-`tests/test_predictor.py` では、推論関数 `predict_sentiment()` を直接テストします。
+Backendでは以下を確認しています。
 
-主な確認項目：
-
-* positive文の判定
-* `not good` の判定
-* `not bad` の判定
-* 返り値の構造
-
-`tests/test_api.py` では、FastAPIのエンドポイントをテストします。
-
-主な確認項目：
-
-* `GET /api/health`
-* `POST /api/predict`
+* 推論関数の返り値
+* `positive` / `negative` / `neutral` の基本判定
+* `not good` / `not bad` の判定
+* `/api/health` のレスポンス
+* `/api/predict` のレスポンス
 * 不正なリクエストに対する `422` レスポンス
 
-## API仕様
+Frontendでは以下を確認しています。
 
-### GET /api/health
+* タイトル表示
+* 入力欄表示
+* Analyzeボタン表示
+* サンプル入力ボタン表示
+* サンプルボタンクリック時の入力欄更新
+
+## API
+
+### GET `/api/health`
 
 ヘルスチェック用エンドポイントです。
 
@@ -400,7 +461,7 @@ pytest
 }
 ```
 
-### POST /api/predict
+### POST `/api/predict`
 
 感情分析を行うエンドポイントです。
 
@@ -422,42 +483,102 @@ pytest
 }
 ```
 
-## Cloud Runへのデプロイ
+## CI/CD
 
-このアプリは、Cloud Runにデプロイできます。
+このプロジェクトでは、GitHub Actionsを用いて自動テストとCloud Runへの自動デプロイを行っています。
 
-Cloud Runでは、コンテナ化されたアプリケーションをGoogle Cloud上で実行できます。  
-このプロジェクトでは、React frontendをbuildし、その成果物をFastAPI backendから配信する一体型Docker構成をCloud Runにデプロイしています。
+### App Tests
 
-### 前提条件
-
-以下が完了している必要があります。
-
-- Google Cloud CLIがインストールされている
-- `gcloud init` が完了している
-- Google Cloudプロジェクトが作成されている
-- Billingが有効化されている
-- 必要なAPIが有効化されている
-
-### 使用するGoogle Cloudプロジェクトを確認する
-
-```bash
-gcloud config get-value project
-```
-
-このプロジェクトでは、以下のようなプロジェクトIDを使用します。
+以下のworkflowでBackendとFrontendのテストを実行します。
 
 ```text
-sound-arcade-421503
+.github/workflows/backend-test.yml
 ```
 
-### 必要なAPIを有効化する
+このworkflowでは、pushやPull Request作成時に以下を実行します。
 
-```bash
-gcloud services enable run.googleapis.com
-gcloud services enable cloudbuild.googleapis.com
-gcloud services enable artifactregistry.googleapis.com
+```text
+backend-test
+→ pytest
+
+frontend-test
+→ npm ci
+→ npm run test:run
 ```
+
+### Cloud Run Auto Deploy
+
+Cloud Runへの自動デプロイは、以下のworkflowで実行されます。
+
+```text
+.github/workflows/deploy-cloud-run.yml
+```
+
+このworkflowでは、`main` にアプリ本体の変更が入ったときに以下を実行します。
+
+```text
+1. リポジトリをcheckoutする
+2. Pythonをセットアップする
+3. requirements.txt をインストールする
+4. pytest を実行する
+5. Google Cloudに認証する
+6. Cloud Runへデプロイする
+```
+
+テストが失敗した場合、Cloud Runへのデプロイは実行されません。
+
+また、`paths` 条件により、READMEやスクリーンショットのみの変更ではCloud Runデプロイが走らないようにしています。
+
+### GitHub Actions Variables
+
+Cloud Runデプロイに必要な設定値は、workflowファイルに直接書かず、GitHub ActionsのRepository Variablesとして管理しています。
+
+使用している主なVariablesは以下です。
+
+```text
+GCP_PROJECT_ID
+GCP_REGION
+CLOUD_RUN_SERVICE
+GCP_WORKLOAD_IDENTITY_PROVIDER
+GCP_SERVICE_ACCOUNT
+```
+
+### Google Cloud Authentication
+
+GitHub ActionsからGoogle Cloudへの認証には、Workload Identity Federationを使用しています。
+
+これにより、サービスアカウントキーJSONをGitHub Secretsに保存せずに、GitHub ActionsからGoogle Cloudへ認証しています。
+
+### Deployment Flow
+
+全体の流れは以下です。
+
+```text
+feature branch
+↓
+Pull Request
+↓
+App Tests
+├── backend-test
+└── frontend-test
+↓
+merge to main
+↓
+Deploy to Cloud Run workflow
+↓
+pytest
+↓
+Cloud Run deploy
+↓
+public URL updated
+```
+
+## Cloud Run Deployment
+
+このアプリはCloud Runにデプロイしています。
+
+Cloud Runでは、コンテナ化されたアプリケーションをGoogle Cloud上で実行できます。
+このプロジェクトでは、React frontendをbuildし、その成果物をFastAPI backendから配信する一体型Docker構成をCloud Runにデプロイしています。
 
 ### Cloud Run向けのポート設定
 
@@ -471,24 +592,6 @@ CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
 
 Cloud Run上では `PORT` 環境変数が使われ、ローカルではデフォルトで `8080` が使われます。
 
-### ローカルでCloud Run想定の動作確認をする
-
-```bash
-docker compose up --build
-```
-
-起動後、以下にアクセスします。
-
-```text
-http://127.0.0.1:8080
-```
-
-ヘルスチェックAPIは以下です。
-
-```text
-http://127.0.0.1:8080/api/health
-```
-
 ### 手動デプロイ
 
 プロジェクト直下で以下を実行します。
@@ -498,46 +601,9 @@ gcloud run deploy ai-sentiment-web-app \
   --source . \
   --region asia-northeast1 \
   --allow-unauthenticated \
-  --min-instances 0
+  --min-instances 0 \
   --max-instances 3
 ```
-
-このコマンドでは、ローカルのソースコードをGoogle Cloudに送信し、Cloud Buildでコンテナイメージをbuildして、Cloud Runにデプロイします。
-
-Cloud Runのソースデプロイでは、`gcloud run deploy --source` により、ソースコードからCloud Runサービスを作成・更新できます。
-
-### オプションの意味
-
-```text
-ai-sentiment-web-app
-```
-
-Cloud Run上のサービス名です。
-
-```text
---source .
-```
-
-現在のディレクトリをソースとしてデプロイします。
-
-```text
---region asia-northeast1
-```
-
-東京リージョンにデプロイします。
-
-```text
---allow-unauthenticated
-```
-
-ログインなしで誰でもアクセスできるURLとして公開します。
-
-```text
---min-instances 0
---max-instances 3
-```
-
-アクセスがないときはインスタンス数を0にして、コストを抑えます。
 
 ### デプロイ後の確認
 
@@ -563,142 +629,11 @@ gcloud run services logs read ai-sentiment-web-app \
   --region asia-northeast1
 ```
 
-### 注意点
-
-Cloud Runには無料枠がありますが、完全無料が保証されるわけではありません。  
-Cloud Build、Artifact Registry、ログ保存、ネットワーク転送などで料金が発生する可能性があります。
-
-学習用では、以下の設定を推奨します。
-
-- `--min-instances 0` を指定する
-- `--max-instances 3` を指定する
-- Google Cloud Billingで予算アラートを設定する
-- 使わないサービスは停止・削除する
-
-## CI/CD
-
-このプロジェクトでは、GitHub Actionsを用いてBackendテストとCloud Runへの自動デプロイを行っています。
-
-### Backend Tests
-
-Backendのテストは、以下のworkflowで実行されます。
-
-```text
-.github/workflows/backend-test.yml
-```
-
-このworkflowでは、pushやPull Request作成時に以下を実行します。
-
-```text
-1. リポジトリをcheckoutする
-2. Pythonをセットアップする
-3. requirements.txt をインストールする
-4. pytest を実行する
-```
-
-これにより、`main` に壊れたコードが入ることを防ぎやすくしています。
-
-### Cloud Run Auto Deploy
-
-Cloud Runへの自動デプロイは、以下のworkflowで実行されます。
-
-```text
-.github/workflows/deploy-cloud-run.yml
-```
-
-このworkflowでは、`main` にpushされたときに以下を実行します。
-
-```text
-1. リポジトリをcheckoutする
-2. Pythonをセットアップする
-3. requirements.txt をインストールする
-4. pytest を実行する
-5. Google Cloudに認証する
-6. Cloud Runへデプロイする
-```
-
-テストが失敗した場合、Cloud Runへのデプロイは実行されません。
-
-### GitHub Actions Variables
-
-Cloud Runデプロイに必要な設定値は、workflowファイルに直接書かず、GitHub ActionsのRepository Variablesとして管理しています。
-
-使用している主なVariablesは以下です。
-
-```text
-GCP_PROJECT_ID
-GCP_REGION
-CLOUD_RUN_SERVICE
-GCP_WORKLOAD_IDENTITY_PROVIDER
-GCP_SERVICE_ACCOUNT
-```
-
-これにより、プロジェクトIDやリージョン、Cloud Runサービス名をworkflowファイルの変更なしで調整しやすくしています。
-
-### Google Cloud Authentication
-
-GitHub ActionsからGoogle Cloudへの認証には、Workload Identity Federationを使用しています。
-
-これにより、サービスアカウントキーJSONをGitHub Secretsに保存せずに、GitHub ActionsからGoogle Cloudへ安全に認証できます。
-
-このプロジェクトでは、GitHub Actions用のサービスアカウントを作成し、そのサービスアカウントにCloud Runデプロイに必要な権限を付与しています。
-
-### Deployment Flow
-
-全体の流れは以下です。
-
-```text
-feature branch
-↓
-Pull Request
-↓
-Backend Tests
-↓
-merge to main
-↓
-Deploy to Cloud Run workflow
-↓
-pytest
-↓
-Cloud Run deploy
-↓
-public URL updated
-```
-
-この構成により、`main` にマージされた内容が自動的にCloud Runへ反映されます。
-
-### Node.js Runtime for GitHub Actions
-
-GitHub ActionsのJavaScript Action実行環境では、Node.js 20の非推奨化に対応するため、以下の環境変数を設定しています。
-
-```yaml
-FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-```
-
-これにより、GitHub ActionsのJavaScript ActionをNode.js 24実行環境に寄せています。
-
-
-## FrontendとAPIの通信
-
-React側では、APIを相対パスで呼び出しています。
-
-```ts
-fetch("/api/predict", ...)
-```
-
-一体型構成では、React画面とAPIが同じオリジンから提供されます。
-
-```text
-https://<cloud-run-service-url>
-```
-
-そのため、本番想定の一体型構成ではCORS問題は基本的に発生しません。
-
-## Docker構成
+## Docker
 
 このプロジェクトでは、multi-stage build を使用しています。
 
-### 1. Frontend build stage
+### Frontend build stage
 
 Node.js環境でReactをbuildします。
 
@@ -710,7 +645,7 @@ npm run build
 frontend/dist
 ```
 
-### 2. Backend runtime stage
+### Backend runtime stage
 
 Python環境でFastAPIを起動します。
 
@@ -731,41 +666,7 @@ Frontend build stageで生成した `frontend/dist` をFastAPIコンテナへコ
         └── assets/
 ```
 
-## 開発時にFrontendとBackendを分けて起動する場合
-
-開発中にReactのHot Reloadを使いたい場合は、FrontendとBackendを別々に起動できます。
-
-### Backend
-
-```bash
-uvicorn app.main:app --reload
-```
-
-Backendは以下で起動します。
-
-```text
-http://127.0.0.1:8000
-```
-
-### Frontend
-
-別ターミナルで以下を実行します。
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontendは以下で起動します。
-
-```text
-http://localhost:5173
-```
-
-この開発時構成では、FrontendとBackendが別オリジンになるため、FastAPI側のCORS設定が必要になります。
-
-## 注意事項
+## Notes
 
 ### `npm run dev` と `npm run build` の違い
 
@@ -793,33 +694,46 @@ frontend/dist/
 
 そのため、実用的な精度には達していません。
 
-特に、以下のような否定表現では誤分類する可能性があります。
+特に、複雑な否定表現や長文、未知語に対する予測は不安定です。
 
-```text
-not good
-not great
-not bad
-not terrible
-```
+## What I Learned
 
-これは、学習データが少ない場合や、単語単体の特徴量に強く反応する場合に起きます。
+このプロジェクトを通じて、以下を学習しました。
 
-## 現在の制限
+* FastAPIによるAPI設計
+* Pydanticによるリクエスト・レスポンスの型定義
+* React + TypeScriptによるFrontend実装
+* Reactの状態管理
+* Fetch APIによるFrontend / Backend連携
+* scikit-learnによるモデル学習・保存・推論
+* TF-IDFによるテキスト特徴量化
+* train/test splitとclassification reportによるモデル評価
+* Docker multi-stage build
+* FastAPIによるReact build成果物の配信
+* pytestによるBackendテスト
+* Vitest / React Testing LibraryによるFrontendテスト
+* GitHub ActionsによるCI
+* Cloud Runへのデプロイ
+* Workload Identity FederationによるGitHub ActionsからGoogle Cloudへの認証
+* CI/CD構成
+* Cloud Runのmin/max instancesによる基本的なコスト対策
+
+## Current Limitations
 
 * 学習データが小規模であり、実用的な精度には達していません
 * 英文テキストのみを想定しています
 * 否定表現は一部改善していますが、複雑な文脈理解はできません
 * 未知語や長文に対する予測は不安定です
 * 評価データも小規模であるため、評価指標は安定しません
-* Frontendのbuild成果物 `frontend/dist/` はGit管理していません
+* Frontendのテストは基本表示とサンプル操作に限定しています
 
-## 今後の改善案
+## Future Improvements
 
 * 学習データの追加
 * より大きな公開データセットの利用
 * モデル比較
 * 日本語テキストへの対応
 * Backendテストの拡充
-* VitestなどによるFrontendテスト追加
+* Frontendテストの拡充
 * UI/UX改善
-
+* Cloud Run自動デプロイのさらなる最適化
