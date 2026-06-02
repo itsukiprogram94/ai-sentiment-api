@@ -53,4 +53,5 @@ jobs:
             --region $REGION \
             --allow-unauthenticated \
             --min-instances 0 \
+            --max-instances 3 \
             --project $PROJECT_ID
